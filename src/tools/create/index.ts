@@ -7,6 +7,7 @@ import CreateItemTool from "./create-item.tool.js";
 import CreateManualJournalTool from "./create-manual-journal.tool.js";
 import CreateOverpaymentAllocationTool from "./create-overpayment-allocation.tool.js";
 import CreatePaymentTool from "./create-payment.tool.js";
+import CreatePrepaymentAllocationTool from "./create-prepayment-allocation.tool.js";
 import CreatePayrollTimesheetTool from "./create-payroll-timesheet.tool.js";
 import CreateQuoteTool from "./create-quote.tool.js";
 import CreateTrackingCategoryTool from "./create-tracking-category.tool.js";
@@ -21,6 +22,7 @@ export const CreateTools = [
   CreateQuoteTool,
   CreatePaymentTool,
   CreateOverpaymentAllocationTool,
+  CreatePrepaymentAllocationTool,
   CreateItemTool,
   CreateBankTransactionTool,
   CreatePayrollTimesheetTool,
