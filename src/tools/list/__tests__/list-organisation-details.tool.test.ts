@@ -34,6 +34,12 @@ describe("list-organisation-details", () => {
     expect(content[1].text).toContain(
       "Financial Year End Day: No financial year end day set.",
     );
+    expect(content[1].text).toContain(
+      "Default Sales Tax: No default sales tax available.",
+    );
+    expect(content[1].text).toContain(
+      "Default Purchases Tax: No default purchases tax available.",
+    );
     expect(content[1].text).toContain("External Links:\nNo external links available.");
     expect(content[1].text).not.toContain("undefined ||");
   });
@@ -69,6 +75,8 @@ describe("list-organisation-details", () => {
         financialYearEndMonth: 6,
         periodLockDate: "2026-06-30",
         endOfYearLockDate: "2026-07-31",
+        defaultSalesTax: "Inclusive",
+        defaultPurchasesTax: "Exclusive",
         addresses: [{
           addressType: "STREET",
           attentionTo: "Accounts Payable",
@@ -104,5 +112,7 @@ describe("list-organisation-details", () => {
     expect(content[1].text).toContain("Phone 1: DEFAULT - +64 04 1111111");
     expect(content[1].text).toContain("Financial Year End Day: 0");
     expect(content[1].text).toContain("End of Year Lock Date: 2026-07-31");
+    expect(content[1].text).toContain("Default Sales Tax: Inclusive");
+    expect(content[1].text).toContain("Default Purchases Tax: Exclusive");
   });
 });

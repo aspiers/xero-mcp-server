@@ -109,6 +109,8 @@ const ListOrganisationDetailsTool = CreateXeroTool(
       `Financial Year End Month: ${organisation.financialYearEndMonth ?? "No financial year end month set."}`,
       `Sales Tax Basis: ${organisation.salesTaxBasis || "No sales tax basis available."}`,
       `Sales Tax Period: ${organisation.salesTaxPeriod || "No sales tax period available."}`,
+      `Default Sales Tax: ${organisation.defaultSalesTax || "No default sales tax available."}`,
+      `Default Purchases Tax: ${organisation.defaultPurchasesTax || "No default purchases tax available."}`,
       organisation.periodLockDate ? `Period Lock Date: ${organisation.periodLockDate}` : null,
       organisation.endOfYearLockDate ? `End of Year Lock Date: ${organisation.endOfYearLockDate}` : null,
       organisation.organisationStatus ? `Organisation Status: ${organisation.organisationStatus}` : null,
