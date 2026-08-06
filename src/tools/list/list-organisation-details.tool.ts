@@ -33,6 +33,9 @@ const ListOrganisationDetailsTool = CreateXeroTool(
     }
 
     const resolvedExternalLinks = organisation.externalLinks?.map((link, index) => `${index + 1}. ${link.linkType}: ${link.url ? getExternalLink(link.url) : link.url}`) || []
+    const externalLinks = resolvedExternalLinks.length
+      ? resolvedExternalLinks.join("\n")
+      : "No external links available.";
 
     const addresses = organisation.addresses?.map((address, index) => {
       return `Address ${index + 1} (${address.addressType || ""}): ${[
@@ -59,33 +62,33 @@ const ListOrganisationDetailsTool = CreateXeroTool(
     }).join("\n") || "No phone numbers available.";
 
     const organisationDetails = [
-      `Name: ${organisation.name} || "No name available."`,
-      `Legal Name: ${organisation.legalName} || "No legal name available."`,
+      `Name: ${organisation.name || "No name available."}`,
+      `Legal Name: ${organisation.legalName || "No legal name available."}`,
       `Pays Tax: ${organisation.paysTax ? "Yes" : "No"}`,
-      `Short Code: ${organisation.shortCode} || "No short code available."`,
-      `Organisation ID: ${organisation.organisationID} || "No organisation ID available."`,
-      `Version: ${organisation.version} || "No version available."`,
+      `Short Code: ${organisation.shortCode || "No short code available."}`,
+      `Organisation ID: ${organisation.organisationID || "No organisation ID available."}`,
+      `Version: ${organisation.version || "No version available."}`,
       organisation.organisationType ? `Organisation Type: ${organisation.organisationType}` : null,
-      `Base Currency: ${organisation.baseCurrency} || "No base currency available."`,
-      `Country Code: ${organisation.countryCode} || "No country code available."`,
-      `Timezone: ${organisation.timezone} || "No timezone available."`,
+      `Base Currency: ${organisation.baseCurrency || "No base currency available."}`,
+      `Country Code: ${organisation.countryCode || "No country code available."}`,
+      `Timezone: ${organisation.timezone || "No timezone available."}`,
       organisation.registrationNumber ? `Registration Number: ${organisation.registrationNumber}` : null,
       organisation.taxNumber ? `Tax Number: ${organisation.taxNumber}` : null,
       organisation.organisationEntityType ? `Organisation Entity Type: ${organisation.organisationEntityType}` : null,
-      `Financial Year End Day: ${organisation.financialYearEndDay} || "No financial year end day set."`,
-      `Financial Year End Month: ${organisation.financialYearEndMonth} || "No financial year end month set."`,
-      `Sales Tax Basis: ${organisation.salesTaxBasis} || "No sales tax basis available."`,
-      `Sales Tax Period: ${organisation.salesTaxPeriod} || "No sales tax period available."`,
+      `Financial Year End Day: ${organisation.financialYearEndDay || "No financial year end day set."}`,
+      `Financial Year End Month: ${organisation.financialYearEndMonth || "No financial year end month set."}`,
+      `Sales Tax Basis: ${organisation.salesTaxBasis || "No sales tax basis available."}`,
+      `Sales Tax Period: ${organisation.salesTaxPeriod || "No sales tax period available."}`,
       organisation.periodLockDate ? `Period Lock Date: ${organisation.periodLockDate}` : null,
       organisation.organisationStatus ? `Organisation Status: ${organisation.organisationStatus}` : null,
-      `Created Date: ${organisation.createdDateUTC} || "No created date available."`,
-      `Edition: ${organisation.edition} || "No edition available."`,
-      `Class: ${organisation._class} || "No class available."`,
+      `Created Date: ${organisation.createdDateUTC || "No created date available."}`,
+      `Edition: ${organisation.edition || "No edition available."}`,
+      `Class: ${organisation._class || "No class available."}`,
       `Is Demo Company: ${organisation.isDemoCompany ? "Yes" : "No"}`,
       organisation.lineOfBusiness ? `Line of Business: ${organisation.lineOfBusiness}` : null,
       `Addresses:\n${addresses}`,
       `Phone Numbers:\n${phones}`,
-      `External Links:\n${resolvedExternalLinks.join("\n")}`,
+      `External Links:\n${externalLinks}`,
       `Payment Terms:\n${paymentTerms}`,
     ].filter(Boolean).join("\n");
 
