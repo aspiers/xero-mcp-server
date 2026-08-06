@@ -1,6 +1,24 @@
 import { listXeroOrganisationDetails } from "../../handlers/list-xero-organisation-details.handler.js";
 import { getExternalLink } from "../../helpers/get-external-link.js";
 import { CreateXeroTool } from "../../helpers/create-xero-tool.js";
+import { Bill } from "xero-node/dist/gen/model/accounting/bill.js";
+import { PaymentTermType } from "xero-node/dist/gen/model/accounting/paymentTermType.js";
+
+function formatPaymentTerm(
+  label: string,
+  term?: Bill,
+): string | null {
+  if (!term) {
+    return null;
+  }
+
+  const details = [
+    term.day !== undefined ? `Day: ${term.day}` : null,
+    term.type !== undefined ? `Type: ${PaymentTermType[term.type]}` : null,
+  ].filter(Boolean).join(", ");
+
+  return details ? `${label}: ${details}` : null;
+}
 
 const ListOrganisationDetailsTool = CreateXeroTool(
   "list-organisation-details",
@@ -49,11 +67,10 @@ const ListOrganisationDetailsTool = CreateXeroTool(
         .join(", ")}`;
     }).join("\n") || "No addresses available.";
 
-    const paymentTerms = organisation.paymentTerms
-    ? Object.entries(organisation.paymentTerms).map(([key, value], index) => {
-        return `${index + 1}. ${key}: ${value}`;
-      }).join("\n")
-    : "No payment terms available.";
+    const paymentTerms = [
+      formatPaymentTerm("Bills", organisation.paymentTerms?.bills),
+      formatPaymentTerm("Sales", organisation.paymentTerms?.sales),
+    ].filter(Boolean).join("\n") || "No payment terms available.";
 
     const phones = organisation.phones?.map((phone, index) => {
       return `Phone ${index + 1}: ${phone.phoneType || "Unknown type"} - ${
