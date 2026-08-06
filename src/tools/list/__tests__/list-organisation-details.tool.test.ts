@@ -61,4 +61,48 @@ describe("list-organisation-details", () => {
     );
     expect(content[1].text).not.toContain("[object Object]");
   });
+
+  it("preserves complete address, phone, and lock-date information", async () => {
+    listOrganisationDetails.mockResolvedValue({
+      result: {
+        financialYearEndDay: 0,
+        financialYearEndMonth: 6,
+        periodLockDate: "2026-06-30",
+        endOfYearLockDate: "2026-07-31",
+        addresses: [{
+          addressType: "STREET",
+          attentionTo: "Accounts Payable",
+          addressLine1: "Level 1",
+          addressLine2: "1 Main Street",
+          addressLine3: "Building A",
+          addressLine4: "North Wing",
+          city: "Sydney",
+          region: "NSW",
+          postalCode: "2000",
+          country: "Australia",
+        }],
+        phones: [{
+          phoneType: "DEFAULT",
+          phoneCountryCode: "64",
+          phoneAreaCode: "04",
+          phoneNumber: "1111111",
+        }],
+      },
+      isError: false,
+      error: null,
+    } as never);
+
+    const response = await ListOrganisationDetailsTool().handler(
+      {} as never,
+      {} as never,
+    );
+    const content = response.content as Array<{ text: string }>;
+
+    expect(content[1].text).toContain(
+      "Attention: Accounts Payable, Level 1, 1 Main Street, Building A, North Wing, Sydney, NSW, 2000, Australia",
+    );
+    expect(content[1].text).toContain("Phone 1: DEFAULT - +64 04 1111111");
+    expect(content[1].text).toContain("Financial Year End Day: 0");
+    expect(content[1].text).toContain("End of Year Lock Date: 2026-07-31");
+  });
 });

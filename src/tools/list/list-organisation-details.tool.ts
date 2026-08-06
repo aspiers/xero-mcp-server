@@ -57,9 +57,13 @@ const ListOrganisationDetailsTool = CreateXeroTool(
 
     const addresses = organisation.addresses?.map((address, index) => {
       return `Address ${index + 1} (${address.addressType || ""}): ${[
+        address.attentionTo ? `Attention: ${address.attentionTo}` : null,
         address.addressLine1,
         address.addressLine2,
+        address.addressLine3,
+        address.addressLine4,
         address.city,
+        address.region,
         address.postalCode,
         address.country,
       ]
@@ -73,8 +77,17 @@ const ListOrganisationDetailsTool = CreateXeroTool(
     ].filter(Boolean).join("\n") || "No payment terms available.";
 
     const phones = organisation.phones?.map((phone, index) => {
+      const phoneNumber = [
+        phone.phoneCountryCode
+          ? `+${phone.phoneCountryCode.replace(/^\+/, "")}`
+          : null,
+        phone.phoneAreaCode,
+        phone.phoneNumber,
+      ]
+        .filter(Boolean)
+        .join(" ");
       return `Phone ${index + 1}: ${phone.phoneType || "Unknown type"} - ${
-        phone.phoneNumber || "No number"
+        phoneNumber || "No number"
       }`;
     }).join("\n") || "No phone numbers available.";
 
@@ -92,11 +105,12 @@ const ListOrganisationDetailsTool = CreateXeroTool(
       organisation.registrationNumber ? `Registration Number: ${organisation.registrationNumber}` : null,
       organisation.taxNumber ? `Tax Number: ${organisation.taxNumber}` : null,
       organisation.organisationEntityType ? `Organisation Entity Type: ${organisation.organisationEntityType}` : null,
-      `Financial Year End Day: ${organisation.financialYearEndDay || "No financial year end day set."}`,
-      `Financial Year End Month: ${organisation.financialYearEndMonth || "No financial year end month set."}`,
+      `Financial Year End Day: ${organisation.financialYearEndDay ?? "No financial year end day set."}`,
+      `Financial Year End Month: ${organisation.financialYearEndMonth ?? "No financial year end month set."}`,
       `Sales Tax Basis: ${organisation.salesTaxBasis || "No sales tax basis available."}`,
       `Sales Tax Period: ${organisation.salesTaxPeriod || "No sales tax period available."}`,
       organisation.periodLockDate ? `Period Lock Date: ${organisation.periodLockDate}` : null,
+      organisation.endOfYearLockDate ? `End of Year Lock Date: ${organisation.endOfYearLockDate}` : null,
       organisation.organisationStatus ? `Organisation Status: ${organisation.organisationStatus}` : null,
       `Created Date: ${organisation.createdDateUTC || "No created date available."}`,
       `Edition: ${organisation.edition || "No edition available."}`,
