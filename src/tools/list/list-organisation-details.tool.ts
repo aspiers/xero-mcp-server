@@ -20,6 +20,14 @@ function formatPaymentTerm(
   return details ? `${label}: ${details}` : null;
 }
 
+function formatOptionalBoolean(value?: boolean): string {
+  if (value === undefined) {
+    return "Not specified";
+  }
+
+  return value ? "Yes" : "No";
+}
+
 const ListOrganisationDetailsTool = CreateXeroTool(
   "list-organisation-details",
   "Lists the organisation details from Xero. Use this tool to get information about the current Xero organisation.",
@@ -50,7 +58,12 @@ const ListOrganisationDetailsTool = CreateXeroTool(
       };
     }
 
-    const resolvedExternalLinks = organisation.externalLinks?.map((link, index) => `${index + 1}. ${link.linkType}: ${link.url ? getExternalLink(link.url) : link.url}`) || []
+    const resolvedExternalLinks = organisation.externalLinks?.map(
+      (link, index) =>
+        `${index + 1}. ${link.linkType || "Unknown type"}: ${
+          link.url ? getExternalLink(link.url) : "No URL available."
+        }`,
+    ) || [];
     const externalLinks = resolvedExternalLinks.length
       ? resolvedExternalLinks.join("\n")
       : "No external links available.";
@@ -94,7 +107,7 @@ const ListOrganisationDetailsTool = CreateXeroTool(
     const organisationDetails = [
       `Name: ${organisation.name || "No name available."}`,
       `Legal Name: ${organisation.legalName || "No legal name available."}`,
-      `Pays Tax: ${organisation.paysTax ? "Yes" : "No"}`,
+      `Pays Tax: ${formatOptionalBoolean(organisation.paysTax)}`,
       `Short Code: ${organisation.shortCode || "No short code available."}`,
       `Organisation ID: ${organisation.organisationID || "No organisation ID available."}`,
       `Version: ${organisation.version || "No version available."}`,
@@ -117,7 +130,7 @@ const ListOrganisationDetailsTool = CreateXeroTool(
       `Created Date: ${organisation.createdDateUTC || "No created date available."}`,
       `Edition: ${organisation.edition || "No edition available."}`,
       `Class: ${organisation._class || "No class available."}`,
-      `Is Demo Company: ${organisation.isDemoCompany ? "Yes" : "No"}`,
+      `Is Demo Company: ${formatOptionalBoolean(organisation.isDemoCompany)}`,
       organisation.lineOfBusiness ? `Line of Business: ${organisation.lineOfBusiness}` : null,
       `Addresses:\n${addresses}`,
       `Phone Numbers:\n${phones}`,

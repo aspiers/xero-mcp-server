@@ -44,6 +44,28 @@ describe("list-organisation-details", () => {
     expect(content[1].text).not.toContain("undefined ||");
   });
 
+  it("renders missing external-link URLs and boolean values as unavailable", async () => {
+    listOrganisationDetails.mockResolvedValue({
+      result: {
+        externalLinks: [{ linkType: "XERO" }],
+      },
+      isError: false,
+      error: null,
+    } as never);
+
+    const response = await ListOrganisationDetailsTool().handler(
+      {} as never,
+      {} as never,
+    );
+    const content = response.content as Array<{ text: string }>;
+
+    expect(content[1].text).toContain("External Links:");
+    expect(content[1].text).toContain("1. XERO: No URL available.");
+    expect(content[1].text).toContain("Pays Tax: Not specified");
+    expect(content[1].text).toContain("Is Demo Company: Not specified");
+    expect(content[1].text).not.toContain("undefined");
+  });
+
   it("renders nested bill and sales payment terms", async () => {
     listOrganisationDetails.mockResolvedValue({
       result: {
