@@ -6,4 +6,3 @@ export default defineConfig({
     setupFiles: ["src/helpers/__tests__/vitest-setup.ts"],
   },
 });
-
