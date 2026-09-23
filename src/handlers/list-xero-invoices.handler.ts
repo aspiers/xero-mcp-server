@@ -15,6 +15,7 @@ export interface ListInvoicesParams {
   order?: string;
   fromDate?: string;
   toDate?: string;
+  pageSize?: number;
 }
 
 // The date range and a caller-supplied `where` both have to reach Xero's single
@@ -40,6 +41,7 @@ async function getInvoices(
     order = "UpdatedDateUTC DESC",
     fromDate,
     toDate,
+    pageSize = 10,
   } = params;
 
   const invoices = await xeroClient.accountingApi.getInvoices(
@@ -56,7 +58,7 @@ async function getInvoices(
     false, // createdByMyApp
     undefined, // unitdp
     false, // summaryOnly
-    10, // pageSize
+    pageSize, // pageSize
     undefined, // searchTerm
     getClientHeaders(),
   );
