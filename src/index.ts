@@ -29,6 +29,8 @@ const run =
     : main;
 
 run().catch((error) => {
-  console.error("Error:", error);
+  // Printing the whole error would dump an AxiosError's request config,
+  // including the Basic client-credentials header.
+  console.error("Error:", error instanceof Error ? error.message : error);
   process.exit(1);
 });

@@ -80,7 +80,8 @@ function waitForCallback(
       };
 
       if (error) {
-        finish(400, `Authorization failed: ${error}`);
+        // `error` is attacker-controllable query input; never echo it as HTML.
+        finish(400, "Authorization failed — see the terminal for details.");
         reject(new Error(`Authorization failed: ${error}`));
       } else if (state !== expectedState) {
         finish(400, "State mismatch — aborting.");
@@ -100,7 +101,8 @@ function waitForCallback(
     }, CALLBACK_TIMEOUT_MS);
 
     server.on("error", reject);
-    server.listen(Number(port), () =>
+    // Loopback only: nothing else on the network should reach the callback.
+    server.listen(Number(port), "127.0.0.1", () =>
       log(`Listening for the Xero callback on ${redirectUri} ...`),
     );
   });
