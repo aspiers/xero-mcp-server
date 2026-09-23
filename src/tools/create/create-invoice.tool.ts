@@ -3,7 +3,7 @@ import { createXeroInvoice } from "../../handlers/create-xero-invoice.handler.js
 import { DeepLinkType, getDeepLink } from "../../helpers/get-deeplink.js";
 import { CreateXeroTool } from "../../helpers/create-xero-tool.js";
 import { trackingSchema } from "../../helpers/tracking-schema.js";
-import { Invoice } from "xero-node";
+import { CurrencyCode, Invoice } from "xero-node";
 
 const lineItemSchema = z.object({
   description: z.string().describe("The description of the line item"),
@@ -33,12 +33,14 @@ const CreateInvoiceTool = CreateXeroTool(
       ACCREC is for sales invoices, Accounts Receivable, or customer invoices. \
       ACCPAY is for purchase invoices, Accounts Payable invoices, supplier invoices, or bills. \
       If the type is not specified, the default is ACCREC."),
+    currencyCode: z.nativeEnum(CurrencyCode).describe("The currency code for the invoice. \
+      If not specified, Xero uses the organisation's base currency.").optional(),
     reference: z.string().describe("A reference number for the invoice.").optional(),
     date: z.string().describe("The date the invoice was created (YYYY-MM-DD format).").optional(),
   },
-  async ({ contactId, lineItems, type, reference, date }) => {
+  async ({ contactId, lineItems, type, currencyCode, reference, date }) => {
     const xeroInvoiceType = type === "ACCREC" ? Invoice.TypeEnum.ACCREC : Invoice.TypeEnum.ACCPAY;
-    const result = await createXeroInvoice(contactId, lineItems, xeroInvoiceType, reference, date);
+    const result = await createXeroInvoice(contactId, lineItems, xeroInvoiceType, currencyCode, reference, date);
     if (result.isError) {
       return {
         content: [
