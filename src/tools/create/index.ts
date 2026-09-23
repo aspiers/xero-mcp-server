@@ -4,6 +4,7 @@ import CreateCreditNoteTool from "./create-credit-note.tool.js";
 import CreateCreditNoteAllocationTool from "./create-credit-note-allocation.tool.js";
 import CreateInvoiceTool from "./create-invoice.tool.js";
 import CreateItemTool from "./create-item.tool.js";
+import CreateLinkedTransactionTool from "./create-linked-transaction.tool.js";
 import CreateManualJournalTool from "./create-manual-journal.tool.js";
 import CreateOverpaymentAllocationTool from "./create-overpayment-allocation.tool.js";
 import CreatePaymentTool from "./create-payment.tool.js";
@@ -27,5 +28,6 @@ export const CreateTools = [
   CreateBankTransactionTool,
   CreatePayrollTimesheetTool,
   CreateTrackingCategoryTool,
-  CreateTrackingOptionsTool
+  CreateTrackingOptionsTool,
+  CreateLinkedTransactionTool
 ];
