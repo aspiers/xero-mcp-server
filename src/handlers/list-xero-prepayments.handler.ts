@@ -19,6 +19,8 @@ async function getPrepayments(
     page, // page
     undefined, // unitdp
     pageSize, // pageSize
+    undefined, // invoiceNumbers
+    undefined, // references
     getClientHeaders(),
   );
 
