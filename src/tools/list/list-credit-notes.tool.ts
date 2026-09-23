@@ -32,13 +32,15 @@ const ListCreditNotesTool = CreateXeroTool(
       .optional()
       .default(false)
       .describe("Include line-item details in the response"),
+    pageSize: z.number().min(1).max(100).default(10).optional().describe("Number of results per page (1-100, default 10)"),
   },
-  async ({ page, contactId, fromDate, toDate, includeLineItems }) => {
+  async ({ page, contactId, fromDate, toDate, includeLineItems, pageSize }) => {
     const response = await listXeroCreditNotes(
       page,
       contactId,
       fromDate,
       toDate,
+      pageSize,
     );
     if (response.error !== null) {
       return {

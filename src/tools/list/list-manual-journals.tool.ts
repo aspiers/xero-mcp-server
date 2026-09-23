@@ -24,6 +24,7 @@ If they want the next page, call this tool again with the next page number, modi
         "Optional date YYYY-MM-DD to filter journals modified after this date",
       ),
     page: z.number().optional().describe("Optional page number for pagination"),
+    pageSize: z.number().min(1).max(100).default(10).optional().describe("Number of results per page (1-100, default 10)"),
     // TODO: where, order
   },
   async (args) => {
@@ -31,6 +32,7 @@ If they want the next page, call this tool again with the next page number, modi
       args?.page,
       args?.manualJournalId,
       args?.modifiedAfter,
+      args?.pageSize,
     );
 
     if (response.isError) {

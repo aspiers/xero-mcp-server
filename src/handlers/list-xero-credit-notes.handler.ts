@@ -10,6 +10,7 @@ async function getCreditNotes(
   page: number,
   fromDate?: string,
   toDate?: string,
+  pageSize: number = 10,
 ): Promise<CreditNote[]> {
   await xeroClient.authenticate();
 
@@ -25,7 +26,7 @@ async function getCreditNotes(
     "UpdatedDateUTC DESC", // order
     page, // page
     undefined, // unitdp
-    10, // pageSize
+    pageSize, // pageSize
     getClientHeaders(),
   );
 
@@ -40,6 +41,7 @@ export async function listXeroCreditNotes(
   contactId?: string,
   fromDate?: string,
   toDate?: string,
+  pageSize: number = 10,
 ): Promise<XeroClientResponse<CreditNote[]>> {
   try {
     const creditNotes = await getCreditNotes(
@@ -47,6 +49,7 @@ export async function listXeroCreditNotes(
       page,
       fromDate,
       toDate,
+      pageSize,
     );
 
     return {
