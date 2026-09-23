@@ -1,6 +1,32 @@
 import { listXeroOrganisationDetails } from "../../handlers/list-xero-organisation-details.handler.js";
 import { getExternalLink } from "../../helpers/get-external-link.js";
 import { CreateXeroTool } from "../../helpers/create-xero-tool.js";
+import { Bill } from "xero-node/dist/gen/model/accounting/bill.js";
+import { PaymentTermType } from "xero-node/dist/gen/model/accounting/paymentTermType.js";
+
+function formatPaymentTerm(
+  label: string,
+  term?: Bill,
+): string | null {
+  if (!term) {
+    return null;
+  }
+
+  const details = [
+    term.day !== undefined ? `Day: ${term.day}` : null,
+    term.type !== undefined ? `Type: ${PaymentTermType[term.type]}` : null,
+  ].filter(Boolean).join(", ");
+
+  return details ? `${label}: ${details}` : null;
+}
+
+function formatOptionalBoolean(value?: boolean): string {
+  if (value === undefined) {
+    return "Not specified";
+  }
+
+  return value ? "Yes" : "No";
+}
 
 const ListOrganisationDetailsTool = CreateXeroTool(
   "list-organisation-details",
@@ -32,13 +58,25 @@ const ListOrganisationDetailsTool = CreateXeroTool(
       };
     }
 
-    const resolvedExternalLinks = organisation.externalLinks?.map((link, index) => `${index + 1}. ${link.linkType}: ${link.url ? getExternalLink(link.url) : link.url}`) || []
+    const resolvedExternalLinks = organisation.externalLinks?.map(
+      (link, index) =>
+        `${index + 1}. ${link.linkType || "Unknown type"}: ${
+          link.url ? getExternalLink(link.url) : "No URL available."
+        }`,
+    ) || [];
+    const externalLinks = resolvedExternalLinks.length
+      ? resolvedExternalLinks.join("\n")
+      : "No external links available.";
 
     const addresses = organisation.addresses?.map((address, index) => {
       return `Address ${index + 1} (${address.addressType || ""}): ${[
+        address.attentionTo ? `Attention: ${address.attentionTo}` : null,
         address.addressLine1,
         address.addressLine2,
+        address.addressLine3,
+        address.addressLine4,
         address.city,
+        address.region,
         address.postalCode,
         address.country,
       ]
@@ -46,46 +84,57 @@ const ListOrganisationDetailsTool = CreateXeroTool(
         .join(", ")}`;
     }).join("\n") || "No addresses available.";
 
-    const paymentTerms = organisation.paymentTerms
-    ? Object.entries(organisation.paymentTerms).map(([key, value], index) => {
-        return `${index + 1}. ${key}: ${value}`;
-      }).join("\n")
-    : "No payment terms available.";
+    const paymentTerms = [
+      formatPaymentTerm("Bills", organisation.paymentTerms?.bills),
+      formatPaymentTerm("Sales", organisation.paymentTerms?.sales),
+    ].filter(Boolean).join("\n") || "No payment terms available.";
 
     const phones = organisation.phones?.map((phone, index) => {
+      const phoneNumber = [
+        phone.phoneCountryCode
+          ? `+${phone.phoneCountryCode.replace(/^\+/, "")}`
+          : null,
+        phone.phoneAreaCode,
+        phone.phoneNumber,
+      ]
+        .filter(Boolean)
+        .join(" ");
       return `Phone ${index + 1}: ${phone.phoneType || "Unknown type"} - ${
-        phone.phoneNumber || "No number"
+        phoneNumber || "No number"
       }`;
     }).join("\n") || "No phone numbers available.";
 
     const organisationDetails = [
-      `Name: ${organisation.name} || "No name available."`,
-      `Legal Name: ${organisation.legalName} || "No legal name available."`,
-      `Pays Tax: ${organisation.paysTax ? "Yes" : "No"}`,
-      `Short Code: ${organisation.shortCode} || "No short code available."`,
-      `Organisation ID: ${organisation.organisationID} || "No organisation ID available."`,
-      `Version: ${organisation.version} || "No version available."`,
+      `Name: ${organisation.name || "No name available."}`,
+      `Legal Name: ${organisation.legalName || "No legal name available."}`,
+      `Pays Tax: ${formatOptionalBoolean(organisation.paysTax)}`,
+      `Short Code: ${organisation.shortCode || "No short code available."}`,
+      `Organisation ID: ${organisation.organisationID || "No organisation ID available."}`,
+      `Version: ${organisation.version || "No version available."}`,
       organisation.organisationType ? `Organisation Type: ${organisation.organisationType}` : null,
-      `Base Currency: ${organisation.baseCurrency} || "No base currency available."`,
-      `Country Code: ${organisation.countryCode} || "No country code available."`,
-      `Timezone: ${organisation.timezone} || "No timezone available."`,
+      `Base Currency: ${organisation.baseCurrency || "No base currency available."}`,
+      `Country Code: ${organisation.countryCode || "No country code available."}`,
+      `Timezone: ${organisation.timezone || "No timezone available."}`,
       organisation.registrationNumber ? `Registration Number: ${organisation.registrationNumber}` : null,
       organisation.taxNumber ? `Tax Number: ${organisation.taxNumber}` : null,
       organisation.organisationEntityType ? `Organisation Entity Type: ${organisation.organisationEntityType}` : null,
-      `Financial Year End Day: ${organisation.financialYearEndDay} || "No financial year end day set."`,
-      `Financial Year End Month: ${organisation.financialYearEndMonth} || "No financial year end month set."`,
-      `Sales Tax Basis: ${organisation.salesTaxBasis} || "No sales tax basis available."`,
-      `Sales Tax Period: ${organisation.salesTaxPeriod} || "No sales tax period available."`,
+      `Financial Year End Day: ${organisation.financialYearEndDay ?? "No financial year end day set."}`,
+      `Financial Year End Month: ${organisation.financialYearEndMonth ?? "No financial year end month set."}`,
+      `Sales Tax Basis: ${organisation.salesTaxBasis || "No sales tax basis available."}`,
+      `Sales Tax Period: ${organisation.salesTaxPeriod || "No sales tax period available."}`,
+      `Default Sales Tax: ${organisation.defaultSalesTax || "No default sales tax available."}`,
+      `Default Purchases Tax: ${organisation.defaultPurchasesTax || "No default purchases tax available."}`,
       organisation.periodLockDate ? `Period Lock Date: ${organisation.periodLockDate}` : null,
+      organisation.endOfYearLockDate ? `End of Year Lock Date: ${organisation.endOfYearLockDate}` : null,
       organisation.organisationStatus ? `Organisation Status: ${organisation.organisationStatus}` : null,
-      `Created Date: ${organisation.createdDateUTC} || "No created date available."`,
-      `Edition: ${organisation.edition} || "No edition available."`,
-      `Class: ${organisation._class} || "No class available."`,
-      `Is Demo Company: ${organisation.isDemoCompany ? "Yes" : "No"}`,
+      `Created Date: ${organisation.createdDateUTC || "No created date available."}`,
+      `Edition: ${organisation.edition || "No edition available."}`,
+      `Class: ${organisation._class || "No class available."}`,
+      `Is Demo Company: ${formatOptionalBoolean(organisation.isDemoCompany)}`,
       organisation.lineOfBusiness ? `Line of Business: ${organisation.lineOfBusiness}` : null,
       `Addresses:\n${addresses}`,
       `Phone Numbers:\n${phones}`,
-      `External Links:\n${resolvedExternalLinks.join("\n")}`,
+      `External Links:\n${externalLinks}`,
       `Payment Terms:\n${paymentTerms}`,
     ].filter(Boolean).join("\n");
 
