@@ -5,24 +5,52 @@ import { Invoice } from "xero-node";
 import { getClientHeaders } from "../helpers/get-client-headers.js";
 import { formatDocumentDateFilter } from "../helpers/format-document-date-filter.js";
 
+export interface ListInvoicesParams {
+  page?: number;
+  contactIds?: string[];
+  invoiceNumbers?: string[];
+  invoiceIds?: string[];
+  statuses?: string[];
+  where?: string;
+  order?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+// The date range and a caller-supplied `where` both have to reach Xero's single
+// where filter, so they are ANDed rather than one replacing the other.
+function combineWhere(...clauses: (string | undefined)[]): string | undefined {
+  const present = clauses.filter((clause): clause is string => !!clause);
+  if (present.length <= 1) return present[0];
+  return present.map((clause) => `(${clause})`).join(" && ");
+}
+
 async function getInvoices(
-  invoiceNumbers: string[] | undefined,
-  contactIds: string[] | undefined,
-  page: number,
-  fromDate?: string,
-  toDate?: string,
+  params: ListInvoicesParams,
 ): Promise<Invoice[]> {
   await xeroClient.authenticate();
+
+  const {
+    page = 1,
+    contactIds,
+    invoiceNumbers,
+    invoiceIds,
+    statuses,
+    where,
+    order = "UpdatedDateUTC DESC",
+    fromDate,
+    toDate,
+  } = params;
 
   const invoices = await xeroClient.accountingApi.getInvoices(
     xeroClient.tenantId,
     undefined, // ifModifiedSince
-    formatDocumentDateFilter(fromDate, toDate), // where
-    "UpdatedDateUTC DESC", // order
-    undefined, // iDs
+    combineWhere(formatDocumentDateFilter(fromDate, toDate), where), // where
+    order, // order
+    invoiceIds, // iDs
     invoiceNumbers, // invoiceNumbers
     contactIds, // contactIDs
-    undefined, // statuses
+    statuses, // statuses
     page,
     false, // includeArchived
     false, // createdByMyApp
@@ -39,20 +67,10 @@ async function getInvoices(
  * List all invoices from Xero
  */
 export async function listXeroInvoices(
-  page: number = 1,
-  contactIds?: string[],
-  invoiceNumbers?: string[],
-  fromDate?: string,
-  toDate?: string,
+  params: ListInvoicesParams,
 ): Promise<XeroClientResponse<Invoice[]>> {
   try {
-    const invoices = await getInvoices(
-      invoiceNumbers,
-      contactIds,
-      page,
-      fromDate,
-      toDate,
-    );
+    const invoices = await getInvoices(params);
 
     return {
       result: invoices,

@@ -33,18 +33,27 @@ describe("document list date filters", () => {
   });
 
   it("passes an inclusive date range to getInvoices", async () => {
-    await listXeroInvoices(
-      2,
-      undefined,
-      undefined,
-      "2025-10-01",
-      "2026-05-01",
-    );
+    await listXeroInvoices({
+      page: 2,
+      fromDate: "2025-10-01",
+      toDate: "2026-05-01",
+    });
 
     expect(mocks.getInvoices.mock.calls[0][2]).toBe(
       "Date >= DateTime(2025, 10, 01) && Date <= DateTime(2026, 05, 01)",
     );
     expect(mocks.getInvoices.mock.calls[0][8]).toBe(2);
+  });
+
+  it("ANDs the date range with a caller-supplied where filter", async () => {
+    await listXeroInvoices({
+      where: 'Type=="ACCPAY"',
+      fromDate: "2026-01-01",
+    });
+
+    expect(mocks.getInvoices.mock.calls[0][2]).toBe(
+      '(Date >= DateTime(2026, 01, 01)) && (Type=="ACCPAY")',
+    );
   });
 
   it("combines contact and date filters for credit notes", async () => {

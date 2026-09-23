@@ -47,11 +47,11 @@ describe("document list line items", () => {
     });
 
     expect(mocks.listXeroInvoices).toHaveBeenCalledWith(
-      1,
-      undefined,
-      undefined,
-      "2026-01-01",
-      "2026-01-31",
+      expect.objectContaining({
+        page: 1,
+        fromDate: "2026-01-01",
+        toDate: "2026-01-31",
+      }),
     );
     expect(result.content.map((item) => item.text).join("\n")).toContain(
       "Description: Bulk invoice item",
