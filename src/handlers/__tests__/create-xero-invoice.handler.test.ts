@@ -61,7 +61,7 @@ describe("createXeroInvoice", () => {
         ],
       },
       true,
-      undefined,
+      4,
       undefined,
       undefined,
       { headers: { "user-agent": "test" } },
