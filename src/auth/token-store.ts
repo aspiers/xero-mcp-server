@@ -1,4 +1,6 @@
+import crypto from "crypto";
 import fs from "fs";
+import path from "path";
 
 /**
  * Shape of the OAuth2 token store on disk. It is the raw token response from
@@ -23,19 +25,113 @@ export interface TokenStore {
 }
 
 /** Read and parse the token store. Throws if the file is missing or malformed. */
-export function readTokens(path: string): TokenStore {
-  return JSON.parse(fs.readFileSync(path, "utf-8")) as TokenStore;
+export function readTokens(file: string): TokenStore {
+  const raw = fs.readFileSync(file, "utf-8");
+  try {
+    return JSON.parse(raw) as TokenStore;
+  } catch {
+    // JSON.parse messages quote the offending input, which could put a token
+    // fragment into a tool response.
+    throw new Error(`Token file ${file} is not valid JSON`);
+  }
 }
 
 /**
- * Write the token store atomically with 0600 perms: write a sibling `.tmp` file
- * then rename over the target, so a crash mid-write can never leave a truncated
- * token file (and the refresh token inside is never world-readable).
+ * Write the token store atomically with 0600 perms, so a crash mid-write can
+ * never leave a truncated token file and the refresh token inside is never
+ * world-readable.
  */
-export function persistTokens(path: string, tok: TokenStore): void {
-  const tmp = `${path}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(tok, null, 2), { mode: 0o600 });
-  fs.renameSync(tmp, path);
+export function persistTokens(file: string, tok: TokenStore): void {
+  if (!tok.access_token || !tok.refresh_token) {
+    throw new Error(
+      "Refusing to persist a token set without access_token and refresh_token",
+    );
+  }
+
+  // A per-writer name stops concurrent writers clobbering one temp file, and
+  // O_EXCL guarantees the 0600 mode applies to a file this call created
+  // rather than to a leftover with looser permissions.
+  const tmp = `${file}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
+  const fd = fs.openSync(tmp, "wx", 0o600);
+  try {
+    fs.writeSync(fd, JSON.stringify(tok, null, 2));
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+
+  try {
+    fs.renameSync(tmp, file);
+  } catch (error) {
+    fs.rmSync(tmp, { force: true });
+    throw error;
+  }
+
+  // Without syncing the directory the rename itself may not survive a crash,
+  // resurrecting a refresh token Xero has already rotated away.
+  const dirFd = fs.openSync(path.dirname(file), "r");
+  try {
+    fs.fsyncSync(dirFd);
+  } finally {
+    fs.closeSync(dirFd);
+  }
+}
+
+// Refresh requests time out well inside this, so a lock this old can only
+// belong to a holder that died mid-refresh.
+export const TOKEN_LOCK_STALE_MS = 60_000;
+const TOKEN_LOCK_TIMEOUT_MS = 45_000;
+const TOKEN_LOCK_RETRY_MS = 100;
+
+/**
+ * Run `fn` while holding an exclusive lock on the token file, shared across
+ * every process using it. Xero rotates the refresh token on each use, so two
+ * processes refreshing from the same stored token would race and could leave
+ * an already-spent refresh token on disk.
+ */
+export async function withTokenLock<T>(
+  file: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const lock = `${file}.lock`;
+  const deadline = Date.now() + TOKEN_LOCK_TIMEOUT_MS;
+
+  for (;;) {
+    try {
+      fs.closeSync(fs.openSync(lock, "wx", 0o600));
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+
+    try {
+      if (Date.now() - fs.statSync(lock).mtimeMs > TOKEN_LOCK_STALE_MS) {
+        fs.rmSync(lock, { force: true });
+        continue;
+      }
+    } catch {
+      // Lock vanished between open and stat: retry immediately.
+      continue;
+    }
+
+    if (Date.now() > deadline) {
+      throw new Error(`Timed out waiting for token lock ${lock}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, TOKEN_LOCK_RETRY_MS));
+  }
+
+  try {
+    return await fn();
+  } finally {
+    fs.rmSync(lock, { force: true });
+  }
+}
+
+/** Epoch seconds at which the access token expires. */
+export function tokenExpiresAt(tok: TokenStore): number {
+  // Prefer an absolute expires_at; fall back to _obtained_at + expires_in;
+  // if neither is present, treat as already expired.
+  return tok.expires_at ?? (tok._obtained_at ?? 0) + (tok.expires_in ?? 1800);
 }
 
 /**

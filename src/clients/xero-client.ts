@@ -11,8 +11,12 @@ import {
   persistTokens,
   readTokens,
   stampExpiry,
+  TOKEN_LOCK_STALE_MS,
+  tokenExpiresAt,
   TokenStore,
+  withTokenLock,
 } from "../auth/token-store.js";
+import { XERO_TOKEN_URL } from "../consts/auth.js";
 import { ensureError } from "../helpers/ensure-error.js";
 
 dotenv.config();
@@ -273,13 +277,34 @@ class RefreshingTokenXeroClient extends MCPXeroClient {
     this.tenantOverride = config.tenantId || undefined;
   }
 
-  private async refresh(refreshToken: string): Promise<TokenStore> {
+  // A rotated token set whose persist failed; the file then still holds a
+  // refresh token Xero has already spent, so this copy must win.
+  private unpersisted?: TokenStore;
+  private refreshInFlight?: Promise<TokenStore>;
+
+  private currentTokens(): TokenStore {
+    const onDisk = readTokens(this.tokenFile);
+    if (
+      this.unpersisted &&
+      tokenExpiresAt(this.unpersisted) > tokenExpiresAt(onDisk)
+    ) {
+      return this.unpersisted;
+    }
+    return onDisk;
+  }
+
+  private static needsRefresh(tok: TokenStore): boolean {
+    // refresh with a 5-minute safety buffer
+    return Math.floor(Date.now() / 1000) > tokenExpiresAt(tok) - 300;
+  }
+
+  private async requestRefresh(refreshToken: string): Promise<TokenStore> {
     const credentials = Buffer.from(
       `${this.clientId}:${this.clientSecret}`,
     ).toString("base64");
 
     const response = await axios.post(
-      "https://identity.xero.com/connect/token",
+      XERO_TOKEN_URL,
       `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`,
       {
         headers: {
@@ -287,26 +312,49 @@ class RefreshingTokenXeroClient extends MCPXeroClient {
           "Content-Type": "application/x-www-form-urlencoded",
           Accept: "application/json",
         },
+        // Keeps a live lock holder well inside TOKEN_LOCK_STALE_MS.
+        timeout: TOKEN_LOCK_STALE_MS / 3,
       },
     );
 
-    const tok = stampExpiry(response.data as TokenStore);
-    persistTokens(this.tokenFile, tok);
-    return tok;
+    const tok = response.data as TokenStore;
+    if (!tok?.access_token || !tok?.refresh_token) {
+      throw new Error("Xero token refresh returned no access or refresh token");
+    }
+    return stampExpiry(tok);
+  }
+
+  private refresh(): Promise<TokenStore> {
+    return withTokenLock(this.tokenFile, async () => {
+      // Another process may have refreshed while this one waited for the lock.
+      const current = this.currentTokens();
+      if (!RefreshingTokenXeroClient.needsRefresh(current)) return current;
+
+      const tok = await this.requestRefresh(current.refresh_token);
+      try {
+        persistTokens(this.tokenFile, tok);
+        this.unpersisted = undefined;
+      } catch (error) {
+        this.unpersisted = tok;
+        console.error(
+          `WARNING: could not save the rotated Xero refresh token to ${this.tokenFile} ` +
+            `(${ensureError(error).message}). This process keeps working, but ` +
+            "after it exits you must re-run the auth flow.",
+        );
+      }
+      return tok;
+    });
   }
 
   public async authenticate(): Promise<void> {
-    let tok = readTokens(this.tokenFile);
-    const now = Math.floor(Date.now() / 1000);
+    let tok = this.currentTokens();
 
-    // Prefer an absolute expires_at; fall back to _obtained_at + expires_in;
-    // if neither is present, treat as expired and refresh.
-    const expiresAt =
-      tok.expires_at ?? (tok._obtained_at ?? 0) + (tok.expires_in ?? 1800);
-
-    // refresh with a 5-minute safety buffer
-    if (now > expiresAt - 300) {
-      tok = await this.refresh(tok.refresh_token);
+    if (RefreshingTokenXeroClient.needsRefresh(tok)) {
+      // Concurrent tool calls in this process share one refresh.
+      this.refreshInFlight ??= this.refresh().finally(() => {
+        this.refreshInFlight = undefined;
+      });
+      tok = await this.refreshInFlight;
     }
 
     this.setTokenSet({
