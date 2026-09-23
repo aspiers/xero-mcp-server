@@ -42,4 +42,16 @@ describe("formatLineItem", () => {
     expect(output).toContain("Item ID: abc-123");
     expect(output).not.toContain("[object Object]");
   });
+
+  it("includes the line item ID so it can be used to link billable expenses", () => {
+    const lineItem = {
+      lineItemID: "li-123",
+      description: "Consulting services",
+      lineAmount: 120,
+    } as LineItem;
+
+    const result = formatLineItem(lineItem);
+
+    expect(result).toContain("Line Item ID: li-123");
+  });
 });

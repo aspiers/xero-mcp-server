@@ -10,6 +10,7 @@ const formatTracking = (
 export const formatLineItem = (lineItem: LineItem): string => {
   return [
     `Item ID: ${lineItem.item?.itemID ?? ""}`,
+    `Line Item ID: ${lineItem.lineItemID}`,
     `Item Code: ${lineItem.itemCode}`,
     `Description: ${lineItem.description}`,
     `Quantity: ${lineItem.quantity}`,
