@@ -182,7 +182,7 @@ NOTE: `XERO_TOKEN_FILE` takes precedence over `XERO_CLIENT_BEARER_TOKEN` and Cus
 - `list-accounts`: Retrieve a list of accounts
 - `list-contacts`: Retrieve a list of contacts from Xero
 - `list-credit-notes`: Retrieve a list of credit notes
-- `list-invoices`: Retrieve a list of invoices
+- `list-invoices`: Retrieve a list of invoices with advanced filtering
 - `list-items`: Retrieve a list of items
 - `list-manual-journals`: Retrieve a list of manual journals
 - `list-organisation-details`: Retrieve details about an organisation
